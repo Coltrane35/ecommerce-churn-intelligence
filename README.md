@@ -112,6 +112,9 @@ This output is designed to be used as an activation list for CRM / email / paid 
 ---
 
 ## Project Structure
+
+
+
 ecommerce-churn-intelligence/
 │
 ├── data/
@@ -128,6 +131,8 @@ ecommerce-churn-intelligence/
 │ ├── churn_priority_table.csv
 │ └── model_metrics.json
 └── README.md
+
+
 
 ---
 
