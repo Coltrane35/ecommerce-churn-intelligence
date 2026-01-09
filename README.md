@@ -109,32 +109,31 @@ A ready-to-activate list of customers with the highest **priority score (Value �
 This output is designed to be used as an activation list for CRM / email / paid retargeting workflows.
 
 
----
-
 ## Project Structure
 
+    ecommerce-churn-intelligence/
+    ├── data/
+    │   └── raw/                  # raw transactional data (ignored in git)
+    ├── src/
+    │   ├── load_data.py           # data loading & cleaning
+    │   ├── churn_label.py         # churn definition logic
+    │   ├── features.py            # RFM & behavioral features
+    │   ├── modeling.py            # churn model & scoring
+    │   ├── decisioning.py         # value-risk decision logic
+    │   ├── plots.py               # decisioning visuals
+    │   └── run_pipeline.py        # end-to-end pipeline
+    ├── outputs/
+    │   ├── customer_features.csv
+    │   ├── churn_priority_table.csv
+    │   └── model_metrics.json
+    ├── reports/
+    │   └── figures/
+    │       ├── value_risk_matrix.png
+    │       └── top_retention_targets.png
+    └── README.md
 
 
-ecommerce-churn-intelligence/
-│
-├── data/
-│ └── raw/ # raw transactional data (ignored in git)
-├── src/
-│ ├── load_data.py # data loading & cleaning
-│ ├── churn_label.py # churn definition logic
-│ ├── features.py # RFM & behavioral features
-│ ├── modeling.py # churn model & scoring
-│ ├── decisioning.py # value-risk decision logic
-│ └── run_pipeline.py # end-to-end pipeline
-├── outputs/
-│ ├── customer_features.csv
-│ ├── churn_priority_table.csv
-│ └── model_metrics.json
-└── README.md
 
-
-
----
 
 ## Key Takeaways
 - Churn prediction alone is not enough — **decision context matters**
