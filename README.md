@@ -87,6 +87,28 @@ Example actions:
 
 This layer translates analytics into **clear business decisions**.
 
+## Decisioning Visuals (MarTech / Retention)
+
+### Value × Risk Matrix
+This matrix helps prioritize retention spend by combining **customer value** with **churn risk**.
+
+![Value × Risk Matrix](reports/figures/value_risk_matrix.png)
+
+**How to use it (campaign thinking):**
+- **High Value + High Risk** → priority retention (personal offer / stronger incentive)
+- **Mid Value + High Risk** → scalable retention campaign (email/ads)
+- **Low Risk** → regular communication, no aggressive discounts
+
+---
+
+### Top Retention Targets (Campaign List)
+A ready-to-activate list of customers with the highest **priority score (Value × Risk)**.
+
+![Top Retention Targets](reports/figures/top_retention_targets.png)
+
+This output is designed to be used as an activation list for CRM / email / paid retargeting workflows.
+
+
 ---
 
 ## Project Structure
