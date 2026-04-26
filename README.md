@@ -110,29 +110,31 @@ are significantly more likely to churn.
 
 ## 📁 Project Structure
 
+```
 ecommerce-churn-intelligence/
 │
 ├── data/
-│ └── raw/
-│ └── Online_Retail.csv
+│   └── raw/
+│       └── Online_Retail.csv
 │
 ├── src/
-│ ├── config.py
-│ ├── load_data.py
-│ ├── churn_label.py
-│ ├── features.py
-│ ├── modeling.py
-│ ├── decisioning.py
-│ └── plots.py
+│   ├── config.py
+│   ├── load_data.py
+│   ├── churn_label.py
+│   ├── features.py
+│   ├── modeling.py
+│   ├── decisioning.py
+│   └── plots.py
 │
 ├── outputs/
-│ ├── customer_features.csv
-│ ├── churn_priority_table.csv
-│ ├── feature_importance.csv
-│ ├── feature_importance.png
-│ └── model_metrics.json
+│   ├── customer_features.csv
+│   ├── churn_priority_table.csv
+│   ├── feature_importance.csv
+│   ├── feature_importance.png
+│   └── model_metrics.json
 │
 └── README.md
+```
 
 
 ---
