@@ -1,148 +1,186 @@
-# E-commerce Churn Intelligence
+# 📊 E-commerce Churn Intelligence
 
-## Business Problem
-In e-commerce, customer inactivity often leads to silent churn and future revenue loss.  
-The key challenge is not predicting churn itself, but **deciding which customers should be prioritized for retention actions**.
-
-This project addresses the question:
-
-> Which valuable e-commerce customers are at risk of churn, and how should retention efforts be prioritized?
+End-to-end machine learning pipeline for predicting customer churn and prioritizing retention actions in e-commerce.
 
 ---
 
-## Solution Overview
-I built an end-to-end **Customer Churn Intelligence pipeline** using transactional e-commerce data.
+## 🚀 Project Overview
 
-The system:
-- defines churn using a **business proxy** (customer inactivity)
-- engineers behavioral features from transaction history
-- predicts churn risk using a supervised ML model
-- combines **customer value and churn risk**
-- outputs **clear retention recommendations**
+This project builds a complete churn prediction system using transactional data from an online retail dataset.
 
-This approach reflects how real-world **CDP / MarTech systems** support marketing and CRM decision-making.
+The goal is not only to predict churn, but to **identify high-value customers at risk and support business decisions**.
 
 ---
 
-## Churn Definition
-Since e-commerce data does not include an explicit churn label, churn is defined as:
+## 🧠 Problem Statement
 
-> **Customer is considered churned if no purchase was made in the last 90 days.**
+Customer churn is one of the biggest challenges in e-commerce.
 
-This inactivity-based definition is a common business proxy used in retail retention analytics.
+Instead of simply predicting churn, this project answers:
 
----
-
-## Data
-- Source: Kaggle – Online Retail (UK)
-- Type: Transactional e-commerce data
-- Key fields:
-  - CustomerID
-  - InvoiceDate
-  - InvoiceNo
-  - Quantity
-  - UnitPrice
-
-All processing is performed locally.
+- Which customers are likely to churn?
+- Which of them are valuable?
+- Who should be targeted first in retention campaigns?
 
 ---
 
-## Feature Engineering
-Customer-level features include:
+## ⚙️ Pipeline Architecture
 
-### Core behavioral features
-- Recency (days since last purchase)
-- Frequency (number of orders)
-- Monetary value (total and average spend)
 
-### Time-window activity features
-- Orders and spend in last 30 / 60 / 90 days
-- Activity decay indicators (trend features)
+Raw Data → Cleaning → Feature Engineering → Churn Labeling → Model Training → Decision Layer
 
-These features capture **early warning signals of churn**, not just static behavior.
 
----
+### Steps:
 
-## Modeling
-- Problem type: Binary classification (churn vs non-churn)
-- Model: Logistic Regression (baseline, interpretable)
-- Output: **Churn probability score** per customer
+### 1. Data Cleaning
+- Removed invalid transactions (negative quantity, missing customers)
+- Correct timestamp parsing (robust handling of multiple formats)
 
-The model is treated as a **scoring component**, not the final product.
+### 2. Feature Engineering
+- RFM features:
+  - Recency
+  - Frequency
+  - Monetary value
+- Time-window features:
+  - Activity in last 30 / 60 / 90 days
+- Trend indicators:
+  - Behavioral change over time
 
----
+### 3. Churn Labeling (NO DATA LEAKAGE)
+- Snapshot-based approach:
+  - Features built using historical data
+  - Churn defined in a future window (90 days)
+- Ensures realistic model performance
 
-## Decision Layer (Key Value)
-The final output is a **decision-oriented customer table**, combining:
+### 4. Modeling
+- Logistic Regression (with scaling)
+- CatBoost (baseline comparison)
+- Automatic model selection based on ROC AUC
 
-- Churn risk (probability score)
-- Customer value segment
-- Priority score (Value × Risk)
-- Recommended retention action
-
-Example actions:
-- Priority retention (high value + high risk)
-- Targeted discount campaign
-- Monitoring or no action
-
-This layer translates analytics into **clear business decisions**.
-
-## Decisioning Visuals (MarTech / Retention)
-
-### Value × Risk Matrix
-This matrix helps prioritize retention spend by combining **customer value** with **churn risk**.
-
-![Value × Risk Matrix](reports/figures/value_risk_matrix.png)
-
-**How to use it (campaign thinking):**
-- **High Value + High Risk** → priority retention (personal offer / stronger incentive)
-- **Mid Value + High Risk** → scalable retention campaign (email/ads)
-- **Low Risk** → regular communication, no aggressive discounts
+### 5. Decision Layer
+- Customer churn scoring
+- Priority ranking for retention campaigns
 
 ---
 
-### Top Retention Targets (Campaign List)
-A ready-to-activate list of customers with the highest **priority score (Value × Risk)**.
-
-![Top Retention Targets](reports/figures/top_retention_targets.png)
-
-This output is designed to be used as an activation list for CRM / email / paid retargeting workflows.
+## 📈 Model Performance
 
 
-## Project Structure
-
-    ecommerce-churn-intelligence/
-    ├── data/
-    │   └── raw/                  # raw transactional data (ignored in git)
-    ├── src/
-    │   ├── load_data.py           # data loading & cleaning
-    │   ├── churn_label.py         # churn definition logic
-    │   ├── features.py            # RFM & behavioral features
-    │   ├── modeling.py            # churn model & scoring
-    │   ├── decisioning.py         # value-risk decision logic
-    │   ├── plots.py               # decisioning visuals
-    │   └── run_pipeline.py        # end-to-end pipeline
-    ├── outputs/
-    │   ├── customer_features.csv
-    │   ├── churn_priority_table.csv
-    │   └── model_metrics.json
-    ├── reports/
-    │   └── figures/
-    │       ├── value_risk_matrix.png
-    │       └── top_retention_targets.png
-    └── README.md
+ROC AUC: ~0.72
+Accuracy: ~0.65
+Precision: ~0.59
+Recall: ~0.60
 
 
-
-
-## Key Takeaways
-- Churn prediction alone is not enough — **decision context matters**
-- Combining customer value with churn risk enables **effective retention prioritization**
-- This project reflects a **production-oriented mindset**, not exploratory analysis
+✔ Model is realistic (no data leakage)  
+✔ Designed for business usage, not Kaggle overfitting  
 
 ---
 
-## Next Steps
-- Test multiple churn windows (60 / 90 / 120 days)
-- Replace value proxy with predictive CLV
-- Integrate campaign simulation or uplift modeling
+## 📊 Feature Importance
+
+![Feature Importance](outputs/feature_importance.png)
+
+### 🔍 Interpretation
+
+The model highlights several key drivers of churn:
+
+- **Customer value (monetary_mean, monetary_median)**  
+  → High-value customers behave differently and are easier to model
+
+- **Recent activity (recency_days)**  
+  → Time since last purchase is one of the strongest churn indicators
+
+- **Recent spend (spend_last_60d, spend_last_30d)**  
+  → Drop in spending signals disengagement
+
+- **Behavior trends (trend_spend_30_vs_90)**  
+  → Declining activity increases churn probability
+
+### 💡 Business Insight
+
+Customers who:
+- haven't purchased recently  
+- spend less than before  
+- show declining activity  
+
+are significantly more likely to churn.
+
+---
+
+## 📁 Project Structure
+
+
+ecommerce-churn-intelligence/
+│
+├── data/
+│ └── raw/
+│ └── Online_Retail.csv
+│
+├── src/
+│ ├── config.py
+│ ├── load_data.py
+│ ├── churn_label.py
+│ ├── features.py
+│ ├── modeling.py
+│ ├── decisioning.py
+│ └── plots.py
+│
+├── outputs/
+│ ├── customer_features.csv
+│ ├── churn_priority_table.csv
+│ ├── feature_importance.csv
+│ ├── feature_importance.png
+│ └── model_metrics.json
+│
+└── README.md
+
+
+---
+
+## ▶️ How to Run
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+2. Run pipeline
+python -m src.run_pipeline
+3. Outputs
+
+Generated files:
+
+customer_features.csv → model-ready dataset
+churn_priority_table.csv → prioritized retention targets
+feature_importance.csv → explainability data
+feature_importance.png → visual insights
+model_metrics.json → performance metrics
+💡 Business Value
+
+This project provides:
+
+Identification of customers at risk of churn
+Prioritization for retention campaigns
+Behavioral insights for marketing teams
+Foundation for data-driven decision making
+🔮 Future Improvements
+Customer Lifetime Value (CLV) integration
+ROI-based retention simulation
+Streamlit dashboard
+Advanced models (XGBoost / LightGBM)
+Time-based modeling
+👨‍💻 Author
+
+Grzegorz Rączka
+Machine Learning / Data Science
+
+⭐ Key Takeaway
+
+This project demonstrates how to move from:
+
+❌ simple churn prediction
+
+to:
+
+✅ actionable churn intelligence system
+➡️ focusing on real business impact, not just model performance
