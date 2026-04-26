@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.config import Config
-from src.load_data import load_transactions
 from src.churn_label import make_snapshot_churn_dataset
-from src.features import build_rfm_features, build_window_features, merge_customer_features
-from src.modeling import train_and_score, save_metrics
+from src.clv import build_clv_dataset, predict_clv, train_clv_model
+from src.config import Config
 from src.decisioning import build_priority_table
+from src.features import build_rfm_features, build_window_features, merge_customer_features
+from src.load_data import load_transactions
+from src.modeling import save_metrics, train_and_score
+from src.plots import plot_feature_importance
 
 
 def main() -> None:
@@ -38,7 +40,12 @@ def main() -> None:
     w90 = build_window_features(history_df, snapshot_date, cfg.win_90)
 
     feats = merge_customer_features(rfm, w30, w60, w90)
-    dataset = feats.merge(churn_df[["CustomerID", "churn"]], on="CustomerID", how="inner")
+
+    dataset = feats.merge(
+        churn_df[["CustomerID", "churn"]],
+        on="CustomerID",
+        how="inner",
+    )
 
     if dataset.empty:
         raise ValueError(
@@ -58,8 +65,40 @@ def main() -> None:
 
     save_metrics(metrics, cfg.metrics_path)
 
-    priority = build_priority_table(dataset, scores, id_col="CustomerID")
+    _, future_clv = build_clv_dataset(
+        df=df,
+        snapshot_date=snapshot_date,
+        horizon_days=cfg.churn_window_days,
+    )
+
+    clv_model = train_clv_model(
+        features=feats,
+        future_clv=future_clv,
+    )
+
+    clv_predictions = predict_clv(
+        model=clv_model,
+        features=feats,
+    )
+
+    dataset_with_clv = dataset.merge(
+        clv_predictions,
+        on="CustomerID",
+        how="left",
+    )
+
+    priority = build_priority_table(
+        dataset_with_clv,
+        scores,
+        id_col="CustomerID",
+    )
+
     priority.to_csv(cfg.churn_priority_path, index=False)
+
+    plot_feature_importance(
+        "outputs/feature_importance.csv",
+        "outputs/feature_importance.png",
+    )
 
     print("Reference date:", reference_date)
     print("Snapshot date:", snapshot_date)
