@@ -1,33 +1,31 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Dict, Tuple
+from typing import Tuple
 
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
+from catboost import CatBoostClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 
-def _build_pipeline(feature_cols: list[str]) -> Pipeline:
-    numeric = Pipeline(steps=[
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler()),
-    ])
-
-    pre = ColumnTransformer(
-        transformers=[("num", numeric, feature_cols)],
-        remainder="drop",
-    )
-
-    clf = LogisticRegression(max_iter=2000, class_weight="balanced")
-
-    return Pipeline(steps=[("preprocess", pre), ("clf", clf)])
+def evaluate(y_true, y_pred, y_prob) -> dict:
+    return {
+        "roc_auc": roc_auc_score(y_true, y_prob),
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred),
+        "recall": recall_score(y_true, y_pred),
+        "f1": f1_score(y_true, y_pred),
+    }
 
 
 def train_and_score(
@@ -36,38 +34,69 @@ def train_and_score(
     id_col: str,
     test_size: float,
     random_state: int,
-) -> Tuple[pd.DataFrame, Dict[str, float]]:
-    feature_cols = [c for c in df.columns if c not in {target_col, id_col}]
-
-    X = df[feature_cols]
-    y = df[target_col].astype(int).values
+) -> Tuple[pd.DataFrame, dict]:
+    X = df.drop(columns=[target_col, id_col])
+    y = df[target_col]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y
+        X,
+        y,
+        test_size=test_size,
+        random_state=random_state,
+        stratify=y,
     )
 
-    model = _build_pipeline(feature_cols)
-    model.fit(X_train, y_train)
+    lr = Pipeline(
+        steps=[
+            ("scaler", StandardScaler()),
+            ("model", LogisticRegression(max_iter=5000)),
+        ]
+    )
+    lr.fit(X_train, y_train)
 
-    proba_test = model.predict_proba(X_test)[:, 1]
-    pred_test = (proba_test >= 0.5).astype(int)
+    lr_prob = lr.predict_proba(X_test)[:, 1]
+    lr_pred = (lr_prob > 0.5).astype(int)
+    lr_metrics = evaluate(y_test, lr_pred, lr_prob)
 
-    metrics = {
-        "roc_auc": float(roc_auc_score(y_test, proba_test)),
-        "accuracy": float(accuracy_score(y_test, pred_test)),
-        "precision": float(precision_score(y_test, pred_test, zero_division=0)),
-        "recall": float(recall_score(y_test, pred_test, zero_division=0)),
-        "f1": float(f1_score(y_test, pred_test, zero_division=0)),
-    }
+    cb = CatBoostClassifier(
+        iterations=500,
+        depth=6,
+        learning_rate=0.05,
+        loss_function="Logloss",
+        verbose=0,
+        random_state=random_state,
+    )
+    cb.fit(X_train, y_train)
 
-    churn_score = model.predict_proba(X)[:, 1]
-    scored = df[[id_col, target_col]].copy()
-    scored["churn_score"] = churn_score
+    cb_prob = cb.predict_proba(X_test)[:, 1]
+    cb_pred = (cb_prob > 0.5).astype(int)
+    cb_metrics = evaluate(y_test, cb_pred, cb_prob)
 
-    return scored, metrics
+    print("\n=== MODEL COMPARISON ===")
+    print("Logistic Regression:", lr_metrics)
+    print("CatBoost:", cb_metrics)
+
+    if cb_metrics["roc_auc"] > lr_metrics["roc_auc"]:
+        print("👉 Using CatBoost")
+        final_prob = cb.predict_proba(X)[:, 1]
+        final_metrics = cb_metrics
+        final_metrics["selected_model"] = "CatBoost"
+    else:
+        print("👉 Using Logistic Regression")
+        final_prob = lr.predict_proba(X)[:, 1]
+        final_metrics = lr_metrics
+        final_metrics["selected_model"] = "Logistic Regression"
+
+    scores = pd.DataFrame(
+        {
+            id_col: df[id_col].values,
+            "churn_score": final_prob,
+        }
+    )
+
+    return scores, final_metrics
 
 
-def save_metrics(metrics: Dict[str, float], path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+def save_metrics(metrics: dict, path) -> None:
+    with open(path, "w") as f:
         json.dump(metrics, f, indent=2)
