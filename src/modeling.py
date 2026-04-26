@@ -28,6 +28,27 @@ def evaluate(y_true, y_pred, y_prob) -> dict:
     }
 
 
+def get_feature_importance(model, X: pd.DataFrame) -> pd.DataFrame:
+    # jeśli pipeline → wyciągnij model
+    if hasattr(model, "named_steps"):
+        model = model.named_steps["model"]
+
+    if hasattr(model, "coef_"):
+        importance = model.coef_[0]
+    elif hasattr(model, "feature_importances_"):
+        importance = model.feature_importances_
+    else:
+        return pd.DataFrame()
+
+    return (
+        pd.DataFrame({
+            "feature": X.columns,
+            "importance": importance,
+        })
+        .sort_values(by="importance", ascending=False)
+    )
+
+
 def train_and_score(
     df: pd.DataFrame,
     target_col: str,
@@ -35,6 +56,7 @@ def train_and_score(
     test_size: float,
     random_state: int,
 ) -> Tuple[pd.DataFrame, dict]:
+
     X = df.drop(columns=[target_col, id_col])
     y = df[target_col]
 
@@ -46,6 +68,7 @@ def train_and_score(
         stratify=y,
     )
 
+    # --- Logistic Regression (ze skalowaniem) ---
     lr = Pipeline(
         steps=[
             ("scaler", StandardScaler()),
@@ -58,6 +81,7 @@ def train_and_score(
     lr_pred = (lr_prob > 0.5).astype(int)
     lr_metrics = evaluate(y_test, lr_pred, lr_prob)
 
+    # --- CatBoost ---
     cb = CatBoostClassifier(
         iterations=500,
         depth=6,
@@ -76,17 +100,27 @@ def train_and_score(
     print("Logistic Regression:", lr_metrics)
     print("CatBoost:", cb_metrics)
 
+    # --- wybór modelu ---
     if cb_metrics["roc_auc"] > lr_metrics["roc_auc"]:
         print("👉 Using CatBoost")
+        final_model = cb
         final_prob = cb.predict_proba(X)[:, 1]
         final_metrics = cb_metrics
         final_metrics["selected_model"] = "CatBoost"
     else:
         print("👉 Using Logistic Regression")
+        final_model = lr
         final_prob = lr.predict_proba(X)[:, 1]
         final_metrics = lr_metrics
         final_metrics["selected_model"] = "Logistic Regression"
 
+    # --- FEATURE IMPORTANCE ---
+    feature_importance = get_feature_importance(final_model, X)
+
+    if not feature_importance.empty:
+        feature_importance.to_csv("outputs/feature_importance.csv", index=False)
+
+    # --- SCORES ---
     scores = pd.DataFrame(
         {
             id_col: df[id_col].values,
