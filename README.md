@@ -31,13 +31,11 @@ Raw Data → Cleaning → Feature Engineering → Churn Labeling → Model Train
 ```
 
 ### 1. Data Cleaning
-
 - Removed invalid transactions
 - Removed missing customers
 - Parsed transaction timestamps correctly
 
 ### 2. Feature Engineering
-
 - RFM features:
   - Recency
   - Frequency
@@ -48,29 +46,19 @@ Raw Data → Cleaning → Feature Engineering → Churn Labeling → Model Train
   - Behavioral change over time
 
 ### 3. Churn Labeling
-
-The project uses a snapshot-based approach to avoid data leakage:
-
-- Features are built using historical data only
-- Churn is defined in a future 90-day window
-- Model performance is realistic, not artificially inflated
+Snapshot-based approach (no data leakage):
+- Features built on historical data
+- Churn defined in future 90-day window
 
 ### 4. Modeling
-
-- Logistic Regression with scaling
+- Logistic Regression (scaled)
 - CatBoost comparison
-- Automatic model selection based on ROC AUC
+- Automatic model selection
 
 ### 5. CLV Prediction
-
-A simple CLV prediction layer estimates future customer value.
-
-This allows the project to move from simple churn prediction to business prioritization.
+Predicts future customer value using historical behavior.
 
 ### 6. Decision Layer
-
-The final priority score combines churn risk and predicted customer value:
-
 ```text
 priority_score = churn_probability × predicted_clv
 ```
@@ -86,7 +74,7 @@ Precision: ~0.59
 Recall: ~0.60
 ```
 
-The model is intentionally designed to be realistic and leakage-free.
+Realistic, leakage-free performance.
 
 ---
 
@@ -96,30 +84,21 @@ The model is intentionally designed to be realistic and leakage-free.
 
 ### 🔍 Interpretation
 
-The model highlights several key drivers of churn:
-
-- Customer value metrics are strong churn indicators
-- Recency is important for identifying disengaged customers
-- Recent activity and spending trends help detect customer decline
-
-### 💡 Business Insight
-
-Customers who have not purchased recently, spend less than before, or show declining activity are more likely to churn.
+- Customer value is a strong predictor
+- Recency is critical
+- Declining activity signals churn risk
 
 ---
 
 ## 💰 CLV-Based Retention Priority
 
-This project combines churn probability with predicted customer value to prioritize retention actions.
-
 ```text
 priority_score = churn_probability × predicted_clv
 ```
 
-This helps identify customers who are both:
-
+Identifies customers who are both:
 - likely to churn
-- valuable to the business
+- valuable
 
 ### Example Output
 
@@ -129,9 +108,23 @@ This helps identify customers who are both:
 | 12346 | 1.0000 | 6316.70 | 6316.70 | HIGH_VALUE_HIGH_RISK |
 | 16532 | 0.9648 | 2841.35 | 2741.31 | HIGH_VALUE_HIGH_RISK |
 
-### 💡 Business Meaning
+---
 
-Instead of targeting every customer at risk, the decision layer helps prioritize customers where retention actions may have the highest business impact.
+## 📊 Value vs Risk Matrix
+
+![Value Risk Matrix](outputs/value_risk_matrix.png)
+
+Customers segmented by:
+
+- Value (predicted CLV)
+- Risk (churn probability)
+
+### Interpretation
+
+- High Value + High Risk → immediate retention target  
+- High Value + Low Risk → nurture  
+- Low Value + High Risk → low priority  
+- Low Value + Low Risk → minimal focus  
 
 ---
 
@@ -159,6 +152,7 @@ ecommerce-churn-intelligence/
 │   ├── churn_priority_table.csv
 │   ├── feature_importance.csv
 │   ├── feature_importance.png
+│   ├── value_risk_matrix.png
 │   └── model_metrics.json
 │
 └── README.md
@@ -168,79 +162,58 @@ ecommerce-churn-intelligence/
 
 ## ▶️ How to Run
 
-### 1. Install dependencies
-
 ```bash
 pip install -r requirements.txt
-```
-
-### 2. Run pipeline
-
-```bash
 python -m src.run_pipeline
 ```
 
-### 3. Outputs
+---
 
-Generated files:
+## 📦 Outputs
 
-- `customer_features.csv` — model-ready dataset
-- `churn_priority_table.csv` — prioritized retention targets
-- `feature_importance.csv` — explainability data
-- `feature_importance.png` — feature importance visualization
-- `model_metrics.json` — performance metrics
+- customer_features.csv
+- churn_priority_table.csv
+- feature_importance.csv
+- feature_importance.png
+- value_risk_matrix.png
+- model_metrics.json
 
 ---
 
 ## 💡 Business Value
 
-This project provides:
-
-- Identification of customers at risk of churn
-- Predicted customer value estimation
-- Prioritization for retention campaigns
-- Behavioral insights for marketing teams
-- Foundation for data-driven retention decisions
+- Identify customers at risk
+- Estimate future value
+- Prioritize retention actions
+- Support marketing decisions
 
 ---
 
 ## 🔗 Related Project
 
-This project can be extended with a dedicated CLV pipeline:
-
 [Customer Lifetime Value Retail](https://github.com/Coltrane35/customer-lifetime-value-retail)
-
-Together, both projects form a customer retention decision engine:
-
-- CLV model estimates customer value
-- Churn model estimates churn risk
-- Decision layer prioritizes customers for retention campaigns
 
 ---
 
 ## 🔮 Future Improvements
 
-- More advanced CLV model
-- ROI-based retention campaign simulation
-- Streamlit dashboard
-- Advanced models such as XGBoost or LightGBM
-- Time-based validation
+- Advanced CLV models
+- Campaign ROI simulation
+- Dashboard (Streamlit)
+- Advanced ML models
 
 ---
 
 ## 👨‍💻 Author
 
-Grzegorz Rączka  
-Machine Learning / Data Science
+Grzegorz Rączka
 
 ---
 
 ## ⭐ Key Takeaway
 
-This project demonstrates how to move from:
+❌ simple churn prediction  
 
-❌ simple churn prediction
-
-to:
+→  
 
 ✅ actionable churn intelligence system
