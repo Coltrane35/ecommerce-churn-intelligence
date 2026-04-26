@@ -38,8 +38,14 @@ def main() -> None:
     w90 = build_window_features(history_df, snapshot_date, cfg.win_90)
 
     feats = merge_customer_features(rfm, w30, w60, w90)
-
     dataset = feats.merge(churn_df[["CustomerID", "churn"]], on="CustomerID", how="inner")
+
+    if dataset.empty:
+        raise ValueError(
+            "Dataset is empty after merging features with churn labels. "
+            "Check CustomerID types and feature generation."
+        )
+
     dataset.to_csv(cfg.customer_features_path, index=False)
 
     scores, metrics = train_and_score(
