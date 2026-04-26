@@ -97,6 +97,27 @@ The model highlights several key drivers of churn:
 - **Behavior trends (trend_spend_30_vs_90)**  
   → Declining activity increases churn probability
 
+
+## 💰 CLV-Based Retention Priority
+
+This project combines churn probability with predicted customer value to prioritize retention actions.
+
+```text
+priority_score = churn_probability × predicted_clv
+
+This helps identify customers who are both:
+
+likely to churn
+valuable to the business
+Example output
+CustomerID	churn_score	predicted_clv	priority_score	segment
+15749	0.7285	47461.45	34575.71	HIGH_VALUE_HIGH_RISK
+12346	1.0000	6316.70	6316.70	HIGH_VALUE_HIGH_RISK
+16532	0.9648	2841.35	2741.31	HIGH_VALUE_HIGH_RISK
+💡 Business meaning
+
+Instead of targeting every customer at risk, the decision layer helps prioritize customers where retention actions may have the highest business impact.
+
 ### 💡 Business Insight
 
 Customers who:
