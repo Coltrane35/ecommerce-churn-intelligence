@@ -1,66 +1,34 @@
 # 📊 E-commerce Churn Intelligence
 
-End-to-end machine learning pipeline for predicting customer churn, estimating customer value, and prioritizing retention actions in e-commerce.
+End-to-end machine learning pipeline for predicting customer churn, estimating customer value, and prioritizing retention actions.
 
 ---
 
 ## 🚀 Project Overview
 
-This project builds a complete churn intelligence system using transactional data from an online retail dataset.
+This project builds a complete churn intelligence system using transactional data.
 
-The goal is not only to predict churn, but to identify high-value customers at risk and support business retention decisions.
+The goal is not only to predict churn, but to identify high-value customers at risk and recommend retention actions.
 
 ---
 
 ## 🧠 Problem Statement
 
-Customer churn is one of the biggest challenges in e-commerce.
+Customer churn is a major challenge in e-commerce.
 
-Instead of simply predicting churn, this project answers:
+This project answers:
 
 - Which customers are likely to churn?
 - Which customers are valuable?
-- Who should be targeted first in retention campaigns?
+- Who should be targeted first?
+- What action should be taken?
 
 ---
 
 ## ⚙️ Pipeline Architecture
 
 ```text
-Raw Data → Cleaning → Feature Engineering → Churn Labeling → Model Training → CLV Prediction → Decision Layer
-```
-
-### 1. Data Cleaning
-- Removed invalid transactions
-- Removed missing customers
-- Parsed transaction timestamps correctly
-
-### 2. Feature Engineering
-- RFM features:
-  - Recency
-  - Frequency
-  - Monetary value
-- Time-window features:
-  - Activity in last 30 / 60 / 90 days
-- Trend indicators:
-  - Behavioral change over time
-
-### 3. Churn Labeling
-Snapshot-based approach (no data leakage):
-- Features built on historical data
-- Churn defined in future 90-day window
-
-### 4. Modeling
-- Logistic Regression (scaled)
-- CatBoost comparison
-- Automatic model selection
-
-### 5. CLV Prediction
-Predicts future customer value using historical behavior.
-
-### 6. Decision Layer
-```text
-priority_score = churn_probability × predicted_clv
+Raw Data → Cleaning → Features → Churn Model → CLV Model → Decision Layer → Strategy Layer
 ```
 
 ---
@@ -74,7 +42,7 @@ Precision: ~0.59
 Recall: ~0.60
 ```
 
-Realistic, leakage-free performance.
+Leakage-free snapshot approach ensures realistic results.
 
 ---
 
@@ -82,11 +50,11 @@ Realistic, leakage-free performance.
 
 ![Feature Importance](outputs/feature_importance.png)
 
-### 🔍 Interpretation
+Key drivers of churn:
 
-- Customer value is a strong predictor
-- Recency is critical
-- Declining activity signals churn risk
+- Customer value metrics
+- Recency (last purchase)
+- Activity trends
 
 ---
 
@@ -96,17 +64,10 @@ Realistic, leakage-free performance.
 priority_score = churn_probability × predicted_clv
 ```
 
-Identifies customers who are both:
+This identifies customers who are both:
+
 - likely to churn
 - valuable
-
-### Example Output
-
-| CustomerID | churn_score | predicted_clv | priority_score | segment |
-|---|---:|---:|---:|---|
-| 15749 | 0.7285 | 47461.45 | 34575.71 | HIGH_VALUE_HIGH_RISK |
-| 12346 | 1.0000 | 6316.70 | 6316.70 | HIGH_VALUE_HIGH_RISK |
-| 16532 | 0.9648 | 2841.35 | 2741.31 | HIGH_VALUE_HIGH_RISK |
 
 ---
 
@@ -116,15 +77,37 @@ Identifies customers who are both:
 
 Customers segmented by:
 
-- Value (predicted CLV)
-- Risk (churn probability)
+- Value (CLV)
+- Risk (churn)
 
 ### Interpretation
 
-- High Value + High Risk → immediate retention target  
+- High Value + High Risk → target immediately  
 - High Value + Low Risk → nurture  
 - Low Value + High Risk → low priority  
-- Low Value + Low Risk → minimal focus  
+
+---
+
+## 🎯 Retention Strategy Layer
+
+The system recommends actions based on customer segment.
+
+| Segment | Recommended Action |
+|--------|------------------|
+| HIGH_VALUE_HIGH_RISK | offer_discount |
+| HIGH_VALUE_MEDIUM_RISK | personal_offer |
+| HIGH_VALUE_LOW_RISK | loyalty_program |
+| MEDIUM_VALUE_HIGH_RISK | email_campaign |
+| LOW_VALUE_HIGH_RISK | low_priority |
+| Other | no_action |
+
+### Example
+
+| CustomerID | Segment | Action |
+|---|---|---|
+| 16532 | HIGH_VALUE_HIGH_RISK | offer_discount |
+| 12435 | HIGH_VALUE_MEDIUM_RISK | personal_offer |
+| 12409 | HIGH_VALUE_LOW_RISK | loyalty_program |
 
 ---
 
@@ -145,6 +128,7 @@ ecommerce-churn-intelligence/
 │   ├── modeling.py
 │   ├── clv.py
 │   ├── decisioning.py
+│   ├── strategy.py
 │   └── plots.py
 │
 ├── outputs/
@@ -171,36 +155,37 @@ python -m src.run_pipeline
 
 ## 📦 Outputs
 
-- customer_features.csv
-- churn_priority_table.csv
-- feature_importance.csv
-- feature_importance.png
-- value_risk_matrix.png
-- model_metrics.json
+- customer_features.csv  
+- churn_priority_table.csv  
+- feature_importance.csv  
+- feature_importance.png  
+- value_risk_matrix.png  
+- model_metrics.json  
 
 ---
 
 ## 💡 Business Value
 
-- Identify customers at risk
-- Estimate future value
-- Prioritize retention actions
-- Support marketing decisions
+- Identify churn risk  
+- Estimate customer value  
+- Prioritize retention  
+- Recommend actions  
 
 ---
 
 ## 🔗 Related Project
 
-[Customer Lifetime Value Retail](https://github.com/Coltrane35/customer-lifetime-value-retail)
+Customer Lifetime Value (CLV) project:
+
+https://github.com/Coltrane35/customer-lifetime-value-retail
 
 ---
 
 ## 🔮 Future Improvements
 
-- Advanced CLV models
-- Campaign ROI simulation
-- Dashboard (Streamlit)
-- Advanced ML models
+- Campaign ROI simulation  
+- Dashboard (Streamlit)  
+- Advanced models  
 
 ---
 
@@ -212,8 +197,8 @@ Grzegorz Rączka
 
 ## ⭐ Key Takeaway
 
-❌ simple churn prediction  
+❌ churn prediction  
 
 →  
 
-✅ actionable churn intelligence system
+✅ churn + CLV + decision + strategy system
