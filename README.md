@@ -109,6 +109,7 @@ The system recommends actions based on customer segment.
 | 12435 | HIGH_VALUE_MEDIUM_RISK | personal_offer |
 | 12409 | HIGH_VALUE_LOW_RISK | loyalty_program |
 
+Each recommendation includes a business explanation for better decision transparency.
 ---
 
 ## 📁 Project Structure
