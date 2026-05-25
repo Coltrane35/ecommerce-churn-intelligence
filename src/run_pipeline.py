@@ -10,6 +10,7 @@ from src.features import build_rfm_features, build_window_features, merge_custom
 from src.load_data import load_transactions
 from src.modeling import save_metrics, train_and_score
 from src.plots import plot_feature_importance, plot_value_risk_matrix
+from src.roi import estimate_campaign_roi
 from src.strategy import assign_retention_action
 
 
@@ -95,6 +96,7 @@ def main() -> None:
     )
 
     priority = assign_retention_action(priority)
+    priority = estimate_campaign_roi(priority)
 
     priority.to_csv(cfg.churn_priority_path, index=False)
 
