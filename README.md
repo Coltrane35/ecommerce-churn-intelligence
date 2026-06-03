@@ -12,6 +12,18 @@ The goal is not only to predict churn, but to identify high-value customers at r
 
 ---
 
+## 🖥️ Dashboard Preview
+
+Interactive Streamlit dashboard for exploring:
+
+- churn risk
+- customer value (CLV)
+- retention actions
+- campaign ROI
+- next best action recommendations
+
+![Dashboard](images/dashboard.png)
+
 ## 🧠 Problem Statement
 
 Customer churn is a major challenge in e-commerce.
