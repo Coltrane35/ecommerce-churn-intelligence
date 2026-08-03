@@ -6,7 +6,12 @@ from src.churn_label import make_snapshot_churn_dataset
 from src.clv import build_clv_dataset, predict_clv, train_clv_model
 from src.config import Config
 from src.decisioning import build_priority_table
-from src.features import build_rfm_features, build_window_features, merge_customer_features
+from src.explainer import generate_business_explanations
+from src.features import (
+    build_rfm_features,
+    build_window_features,
+    merge_customer_features,
+)
 from src.load_data import load_transactions
 from src.modeling import save_metrics, train_and_score
 from src.plots import plot_feature_importance, plot_value_risk_matrix
@@ -28,7 +33,9 @@ def main() -> None:
     df = load_transactions(str(cfg.data_path))
 
     reference_date = df["InvoiceDate"].max()
-    snapshot_date = reference_date - pd.Timedelta(days=cfg.churn_window_days)
+    snapshot_date = reference_date - pd.Timedelta(
+        days=cfg.churn_window_days
+    )
 
     history_df, churn_df = make_snapshot_churn_dataset(
         df=df,
@@ -37,11 +44,28 @@ def main() -> None:
     )
 
     rfm = build_rfm_features(history_df, snapshot_date)
-    w30 = build_window_features(history_df, snapshot_date, cfg.win_30)
-    w60 = build_window_features(history_df, snapshot_date, cfg.win_60)
-    w90 = build_window_features(history_df, snapshot_date, cfg.win_90)
+    w30 = build_window_features(
+        history_df,
+        snapshot_date,
+        cfg.win_30,
+    )
+    w60 = build_window_features(
+        history_df,
+        snapshot_date,
+        cfg.win_60,
+    )
+    w90 = build_window_features(
+        history_df,
+        snapshot_date,
+        cfg.win_90,
+    )
 
-    feats = merge_customer_features(rfm, w30, w60, w90)
+    feats = merge_customer_features(
+        rfm,
+        w30,
+        w60,
+        w90,
+    )
 
     dataset = feats.merge(
         churn_df[["CustomerID", "churn"]],
@@ -55,7 +79,10 @@ def main() -> None:
             "Check CustomerID types and feature generation."
         )
 
-    dataset.to_csv(cfg.customer_features_path, index=False)
+    dataset.to_csv(
+        cfg.customer_features_path,
+        index=False,
+    )
 
     scores, metrics = train_and_score(
         dataset,
@@ -65,7 +92,10 @@ def main() -> None:
         random_state=cfg.random_state,
     )
 
-    save_metrics(metrics, cfg.metrics_path)
+    save_metrics(
+        metrics,
+        cfg.metrics_path,
+    )
 
     _, future_clv = build_clv_dataset(
         df=df,
@@ -97,8 +127,12 @@ def main() -> None:
 
     priority = assign_retention_action(priority)
     priority = estimate_campaign_roi(priority)
+    priority = generate_business_explanations(priority)
 
-    priority.to_csv(cfg.churn_priority_path, index=False)
+    priority.to_csv(
+        cfg.churn_priority_path,
+        index=False,
+    )
 
     plot_feature_importance(
         "outputs/feature_importance.csv",
