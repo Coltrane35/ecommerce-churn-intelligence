@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from src.summary import build_executive_summary
+
 
 DATA_PATH = Path("outputs/churn_priority_table.csv")
 
@@ -24,9 +26,16 @@ st.set_page_config(
 )
 
 st.title("🚀 Customer Retention Decision Engine")
+
 st.caption(
-    "Churn prediction, CLV, next-best-action recommendations and ROI analysis."
+    "Churn prediction, CLV, next-best-action recommendations, "
+    "ROI analysis and business explainability."
 )
+
+
+# -------------------------------------------------------------------
+# Load data
+# -------------------------------------------------------------------
 
 try:
     df = load_data(DATA_PATH)
@@ -41,9 +50,18 @@ except FileNotFoundError as error:
 
 st.sidebar.header("Filters")
 
-segment_options = sorted(df["segment"].dropna().unique().tolist())
+segment_options = sorted(
+    df["segment"]
+    .dropna()
+    .unique()
+    .tolist()
+)
+
 action_options = sorted(
-    df["recommended_action"].dropna().unique().tolist()
+    df["recommended_action"]
+    .dropna()
+    .unique()
+    .tolist()
 )
 
 segment_filter = st.sidebar.multiselect(
@@ -70,6 +88,46 @@ filtered_df = df[
     & df["recommended_action"].isin(action_filter)
     & (df["estimated_roi"] >= minimum_roi)
 ].copy()
+
+
+if filtered_df.empty:
+    st.warning("No customers match the selected filters.")
+    st.stop()
+
+
+# -------------------------------------------------------------------
+# Executive Summary
+# -------------------------------------------------------------------
+
+summary = build_executive_summary(filtered_df)
+
+st.subheader("🧠 Executive Summary")
+
+summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+
+summary_col1.metric(
+    "High Risk Customers",
+    f"{summary['high_risk_customers']:,}",
+)
+
+summary_col2.metric(
+    "High Value / High Risk",
+    f"{summary['high_value_high_risk_customers']:,}",
+)
+
+summary_col3.metric(
+    "Average ROI",
+    f"{summary['average_roi']:.2f}",
+)
+
+summary_col4.metric(
+    "Top Profit Segment",
+    str(summary["top_segment"]),
+)
+
+st.info(
+    str(summary["summary_text"])
+)
 
 
 # -------------------------------------------------------------------
@@ -119,11 +177,6 @@ col4.metric(
     "Total Expected Profit",
     f"{total_profit:,.0f}",
 )
-
-
-if filtered_df.empty:
-    st.warning("No customers match the selected filters.")
-    st.stop()
 
 
 # -------------------------------------------------------------------
@@ -210,10 +263,15 @@ st.dataframe(
 # -------------------------------------------------------------------
 
 st.divider()
+
 st.subheader("🔍 Customer Explorer")
 
 customer_options = sorted(
-    filtered_df["CustomerID"].dropna().astype(int).unique().tolist()
+    filtered_df["CustomerID"]
+    .dropna()
+    .astype(int)
+    .unique()
+    .tolist()
 )
 
 selected_customer_id = st.selectbox(
@@ -222,11 +280,19 @@ selected_customer_id = st.selectbox(
 )
 
 customer_row = filtered_df[
-    filtered_df["CustomerID"].astype(int) == selected_customer_id
+    filtered_df["CustomerID"].astype(int)
+    == selected_customer_id
 ].iloc[0]
 
 
-st.markdown(f"### Customer {selected_customer_id}")
+st.markdown(
+    f"### Customer {selected_customer_id}"
+)
+
+
+# -------------------------------------------------------------------
+# Customer metrics
+# -------------------------------------------------------------------
 
 metric1, metric2, metric3, metric4 = st.columns(4)
 
@@ -251,45 +317,104 @@ metric4.metric(
 )
 
 
+# -------------------------------------------------------------------
+# Customer details
+# -------------------------------------------------------------------
+
 details_left, details_right = st.columns(2)
 
 with details_left:
+
     st.markdown("#### Customer Classification")
-    st.write(f"**Segment:** {customer_row['segment']}")
+
+    st.write(
+        f"**Segment:** "
+        f"{customer_row['segment']}"
+    )
+
     st.write(
         f"**Priority score:** "
         f"{customer_row['priority_score']:,.2f}"
     )
+
     st.write(
         f"**Action reason:** "
         f"{customer_row['action_reason']}"
     )
 
+
 with details_right:
+
     st.markdown("#### Recommended Action")
+
     st.write(
         f"**Action:** "
         f"{customer_row['recommended_action']}"
     )
+
     st.write(
         f"**Channel:** "
         f"{customer_row['action_channel']}"
     )
+
     st.write(
         f"**Timing:** "
         f"{customer_row['action_timing']}"
     )
+
     st.write(
         f"**Campaign cost:** "
         f"{customer_row['campaign_cost']:,.0f}"
     )
 
 
-st.markdown("#### Business Explanation")
+# -------------------------------------------------------------------
+# Model Explanation
+# -------------------------------------------------------------------
+
+st.markdown("#### 🔬 Model Explanation")
+
+model_explanation = customer_row.get(
+    "model_explanation",
+    "No model explanation available.",
+)
+
+st.warning(
+    model_explanation
+)
+
+driver_col1, driver_col2 = st.columns(2)
+
+with driver_col1:
+    st.markdown("##### Risk Drivers")
+    st.write(
+        customer_row.get(
+            "top_risk_drivers",
+            "No risk drivers available.",
+        )
+    )
+
+with driver_col2:
+    st.markdown("##### Protective Drivers")
+    st.write(
+        customer_row.get(
+            "top_protective_drivers",
+            "No protective drivers available.",
+        )
+    )
+
+
+# -------------------------------------------------------------------
+# Business Explanation
+# -------------------------------------------------------------------
+
+st.markdown("#### 💡 Business Explanation")
 
 business_explanation = customer_row.get(
     "business_explanation",
     "No business explanation available.",
 )
 
-st.info(business_explanation)
+st.info(
+    business_explanation
+)

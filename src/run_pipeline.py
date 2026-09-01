@@ -28,13 +28,22 @@ def main() -> None:
             "Put CSV into data/raw/ and update src/config.py if needed."
         )
 
-    cfg.outputs_dir.mkdir(parents=True, exist_ok=True)
+    cfg.outputs_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
-    df = load_transactions(str(cfg.data_path))
+    df = load_transactions(
+        str(cfg.data_path)
+    )
 
     reference_date = df["InvoiceDate"].max()
-    snapshot_date = reference_date - pd.Timedelta(
-        days=cfg.churn_window_days
+
+    snapshot_date = (
+        reference_date
+        - pd.Timedelta(
+            days=cfg.churn_window_days
+        )
     )
 
     history_df, churn_df = make_snapshot_churn_dataset(
@@ -43,17 +52,23 @@ def main() -> None:
         prediction_window_days=cfg.churn_window_days,
     )
 
-    rfm = build_rfm_features(history_df, snapshot_date)
+    rfm = build_rfm_features(
+        history_df,
+        snapshot_date,
+    )
+
     w30 = build_window_features(
         history_df,
         snapshot_date,
         cfg.win_30,
     )
+
     w60 = build_window_features(
         history_df,
         snapshot_date,
         cfg.win_60,
     )
+
     w90 = build_window_features(
         history_df,
         snapshot_date,
@@ -68,7 +83,12 @@ def main() -> None:
     )
 
     dataset = feats.merge(
-        churn_df[["CustomerID", "churn"]],
+        churn_df[
+            [
+                "CustomerID",
+                "churn",
+            ]
+        ],
         on="CustomerID",
         how="inner",
     )
@@ -84,7 +104,11 @@ def main() -> None:
         index=False,
     )
 
-    scores, metrics = train_and_score(
+    (
+        scores,
+        metrics,
+        model_explanations,
+    ) = train_and_score(
         dataset,
         target_col="churn",
         id_col="CustomerID",
@@ -125,9 +149,23 @@ def main() -> None:
         id_col="CustomerID",
     )
 
-    priority = assign_retention_action(priority)
-    priority = estimate_campaign_roi(priority)
-    priority = generate_business_explanations(priority)
+    priority = priority.merge(
+        model_explanations,
+        on="CustomerID",
+        how="left",
+    )
+
+    priority = assign_retention_action(
+        priority
+    )
+
+    priority = estimate_campaign_roi(
+        priority
+    )
+
+    priority = generate_business_explanations(
+        priority
+    )
 
     priority.to_csv(
         cfg.churn_priority_path,
@@ -146,15 +184,46 @@ def main() -> None:
 
     print("Reference date:", reference_date)
     print("Snapshot date:", snapshot_date)
-    print("Prediction window days:", cfg.churn_window_days)
-    print("Transactions:", df.shape)
-    print("History transactions:", history_df.shape)
-    print("Customers:", dataset.shape[0])
-    print("Churn share:", float(dataset["churn"].mean()))
-    print("Metrics:", metrics)
-    print(f"Saved features: {cfg.customer_features_path}")
-    print(f"Saved priority table: {cfg.churn_priority_path}")
-    print(f"Saved metrics: {cfg.metrics_path}")
+    print(
+        "Prediction window days:",
+        cfg.churn_window_days,
+    )
+    print(
+        "Transactions:",
+        df.shape,
+    )
+    print(
+        "History transactions:",
+        history_df.shape,
+    )
+    print(
+        "Customers:",
+        dataset.shape[0],
+    )
+    print(
+        "Churn share:",
+        float(dataset["churn"].mean()),
+    )
+    print(
+        "Metrics:",
+        metrics,
+    )
+    print(
+        f"Saved features: "
+        f"{cfg.customer_features_path}"
+    )
+    print(
+        f"Saved model explanations: "
+        f"outputs/model_explanations.csv"
+    )
+    print(
+        f"Saved priority table: "
+        f"{cfg.churn_priority_path}"
+    )
+    print(
+        f"Saved metrics: "
+        f"{cfg.metrics_path}"
+    )
 
 
 if __name__ == "__main__":
