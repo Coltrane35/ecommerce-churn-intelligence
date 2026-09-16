@@ -12,6 +12,7 @@ from src.features import (
     build_window_features,
     merge_customer_features,
 )
+from src.llm_context import add_llm_context
 from src.load_data import load_transactions
 from src.modeling import save_metrics, train_and_score
 from src.plots import plot_feature_importance, plot_value_risk_matrix
@@ -33,6 +34,10 @@ def main() -> None:
         exist_ok=True,
     )
 
+    # ----------------------------------------------------------------
+    # Load transactional data
+    # ----------------------------------------------------------------
+
     df = load_transactions(
         str(cfg.data_path)
     )
@@ -46,11 +51,19 @@ def main() -> None:
         )
     )
 
+    # ----------------------------------------------------------------
+    # Snapshot churn dataset
+    # ----------------------------------------------------------------
+
     history_df, churn_df = make_snapshot_churn_dataset(
         df=df,
         snapshot_date=snapshot_date,
         prediction_window_days=cfg.churn_window_days,
     )
+
+    # ----------------------------------------------------------------
+    # Feature engineering
+    # ----------------------------------------------------------------
 
     rfm = build_rfm_features(
         history_df,
@@ -104,6 +117,10 @@ def main() -> None:
         index=False,
     )
 
+    # ----------------------------------------------------------------
+    # Churn model
+    # ----------------------------------------------------------------
+
     (
         scores,
         metrics,
@@ -120,6 +137,10 @@ def main() -> None:
         metrics,
         cfg.metrics_path,
     )
+
+    # ----------------------------------------------------------------
+    # CLV model
+    # ----------------------------------------------------------------
 
     _, future_clv = build_clv_dataset(
         df=df,
@@ -143,11 +164,19 @@ def main() -> None:
         how="left",
     )
 
+    # ----------------------------------------------------------------
+    # Decision table
+    # ----------------------------------------------------------------
+
     priority = build_priority_table(
         dataset_with_clv,
         scores,
         id_col="CustomerID",
     )
+
+    # ----------------------------------------------------------------
+    # Local model explainability
+    # ----------------------------------------------------------------
 
     priority = priority.merge(
         model_explanations,
@@ -155,22 +184,50 @@ def main() -> None:
         how="left",
     )
 
+    # ----------------------------------------------------------------
+    # Next Best Action
+    # ----------------------------------------------------------------
+
     priority = assign_retention_action(
         priority
     )
+
+    # ----------------------------------------------------------------
+    # ROI simulation
+    # ----------------------------------------------------------------
 
     priority = estimate_campaign_roi(
         priority
     )
 
+    # ----------------------------------------------------------------
+    # Business explanation
+    # ----------------------------------------------------------------
+
     priority = generate_business_explanations(
         priority
     )
+
+    # ----------------------------------------------------------------
+    # LLM-ready context
+    # ----------------------------------------------------------------
+
+    priority = add_llm_context(
+        priority
+    )
+
+    # ----------------------------------------------------------------
+    # Save final customer decision table
+    # ----------------------------------------------------------------
 
     priority.to_csv(
         cfg.churn_priority_path,
         index=False,
     )
+
+    # ----------------------------------------------------------------
+    # Visual outputs
+    # ----------------------------------------------------------------
 
     plot_feature_importance(
         "outputs/feature_importance.csv",
@@ -182,47 +239,66 @@ def main() -> None:
         "outputs/value_risk_matrix.png",
     )
 
+    # ----------------------------------------------------------------
+    # Pipeline summary
+    # ----------------------------------------------------------------
+
     print("Reference date:", reference_date)
     print("Snapshot date:", snapshot_date)
+
     print(
         "Prediction window days:",
         cfg.churn_window_days,
     )
+
     print(
         "Transactions:",
         df.shape,
     )
+
     print(
         "History transactions:",
         history_df.shape,
     )
+
     print(
         "Customers:",
         dataset.shape[0],
     )
+
     print(
         "Churn share:",
         float(dataset["churn"].mean()),
     )
+
     print(
         "Metrics:",
         metrics,
     )
+
     print(
         f"Saved features: "
         f"{cfg.customer_features_path}"
     )
+
     print(
-        f"Saved model explanations: "
-        f"outputs/model_explanations.csv"
+        "Saved model explanations: "
+        "outputs/model_explanations.csv"
     )
+
     print(
         f"Saved priority table: "
         f"{cfg.churn_priority_path}"
     )
+
     print(
         f"Saved metrics: "
         f"{cfg.metrics_path}"
+    )
+
+    print(
+        "LLM-ready columns added: "
+        "llm_context, llm_prompt"
     )
 
 
