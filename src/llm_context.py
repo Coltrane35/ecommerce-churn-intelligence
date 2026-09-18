@@ -9,19 +9,17 @@ def build_customer_llm_context(
     row: pd.Series,
 ) -> dict[str, object]:
     """
-    Build structured customer context that can later
-    be passed to an LLM.
+    Build structured, LLM-ready customer context.
 
-    The function itself does not call any external API.
+    The context contains only information already produced
+    by the analytical pipeline. It does not add assumptions
+    about feature direction, causality or currency.
     """
 
     return {
         "customer": {
             "customer_id": int(
-                row.get(
-                    "CustomerID",
-                    0,
-                )
+                row.get("CustomerID", 0)
             ),
             "segment": row.get(
                 "segment",
@@ -125,7 +123,10 @@ def build_llm_prompt(
     row: pd.Series,
 ) -> str:
     """
-    Build a prompt ready to be passed to an LLM.
+    Build a grounded prompt for the retention LLM.
+
+    The prompt explicitly prevents unsupported interpretation
+    of model contributions and business values.
     """
 
     context = build_customer_llm_context(
@@ -143,13 +144,27 @@ def build_llm_prompt(
         "Analyze the following customer information:\n\n"
         f"{context_json}\n\n"
         "Provide a short business explanation containing:\n"
-        "1. Why the customer may churn.\n"
+        "1. Why the model considers the customer at risk of churn.\n"
         "2. Why the recommended action is appropriate.\n"
         "3. What business value may be protected.\n"
         "4. The most important next step for the retention team.\n\n"
-        "Use concise, professional business language. "
-        "Do not invent information that is not present "
-        "in the customer data."
+        "Important interpretation rules:\n"
+        "- Risk drivers are features that contributed positively "
+        "to the model's churn prediction.\n"
+        "- Protective drivers are features that contributed "
+        "negatively to the model's churn prediction.\n"
+        "- Do not assume that a feature is high, low, increasing, "
+        "decreasing, strong or weak unless its actual value or trend "
+        "is explicitly provided.\n"
+        "- Do not infer causal relationships from model contributions.\n"
+        "- Do not invent customer behavior that is not present "
+        "in the supplied data.\n"
+        "- Do not add a currency symbol or currency name unless "
+        "a currency is explicitly provided in the context.\n"
+        "- Treat churn score, CLV, expected profit and ROI as "
+        "model-derived estimates, not guaranteed outcomes.\n"
+        "- Use only the information supplied in the context.\n\n"
+        "Use concise, professional business language."
     )
 
 
@@ -157,7 +172,7 @@ def add_llm_context(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Add LLM-ready context and prompt columns
+    Add structured LLM context and prompt columns
     to the customer decision table.
     """
 

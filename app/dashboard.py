@@ -5,6 +5,10 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from src.llm_service import (
+    generate_ai_recommendation,
+    is_llm_available,
+)
 from src.summary import build_executive_summary
 
 
@@ -892,3 +896,89 @@ business_explanation = (
 st.info(
     business_explanation
 )
+
+
+# -------------------------------------------------------------------
+# AI Retention Recommendation
+# -------------------------------------------------------------------
+
+st.markdown(
+    "#### ✨ AI Retention Recommendation"
+)
+
+st.caption(
+    "Generate an AI-powered retention recommendation using "
+    "the customer's churn prediction, model drivers, CLV, "
+    "recommended action and expected ROI."
+)
+
+if not is_llm_available():
+
+    st.warning(
+        "OpenAI API is not configured. "
+        "Add OPENAI_API_KEY to the .env file "
+        "to enable AI recommendations."
+    )
+
+else:
+
+    llm_prompt = customer_row.get(
+        "llm_prompt",
+        "",
+    )
+
+    if (
+        not isinstance(llm_prompt, str)
+        or not llm_prompt.strip()
+    ):
+
+        st.warning(
+            "LLM prompt is not available for this customer. "
+            "Run the pipeline again."
+        )
+
+    else:
+
+        recommendation_key = (
+            f"ai_recommendation_"
+            f"{selected_customer_id}"
+        )
+
+        if st.button(
+            "✨ Generate AI Recommendation",
+            type="primary",
+        ):
+
+            try:
+
+                with st.spinner(
+                    "Generating retention recommendation..."
+                ):
+
+                    recommendation = (
+                        generate_ai_recommendation(
+                            llm_prompt
+                        )
+                    )
+
+                st.session_state[
+                    recommendation_key
+                ] = recommendation
+
+            except Exception as error:
+
+                st.error(
+                    "AI recommendation could not be generated."
+                )
+
+                st.caption(
+                    f"API error: {error}"
+                )
+
+        if recommendation_key in st.session_state:
+
+            st.success(
+                st.session_state[
+                    recommendation_key
+                ]
+            )
