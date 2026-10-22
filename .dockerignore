@@ -1,0 +1,9 @@
+.venv
+.git
+.gitignore
+.env
+__pycache__
+*.pyc
+.ipynb_checkpoints
+catboost_info
+data/raw
